@@ -15,9 +15,9 @@ class Application():
 
     def __init__(self):
 
-        self.inputfilepath ='C:\\Users\\Dinesh\\Desktop\\Test gcodes\\yang_simple.gcode'
-        self.startlayer = 5
-        self.endlayer = 5
+        self.inputfilepath ='C:\\Users\\Dinesh\\Desktop\\Test gcodes\\benchy_simple.gcode'
+        self.startlayer = 1
+        self.endlayer = 240
         self.emode = 'A'
 
         self.gepattern = re.compile(r"G1\sX\d+\.\d+\sY\d+\.\d+\sE\d+\.\d+")
@@ -39,9 +39,15 @@ class Application():
         self.extmult = 0.92
 
         self.gc_summary_dt = {}
+        self.ft_var = str
+        self.tc_ew = 0.0
+        self.tc_lh = 0.0
+        self.gc_z = 0.0
+        self.cmt_layer = int
 
-        self.coordinateTable()
+        self.gcodetodf()
 
+        # self.coordinateTable()
         # self.gcodeSummary()
         # self.extrusionAmount()
         # self.retractionCount()
@@ -54,6 +60,86 @@ class Application():
         self.extByFeature()
         self.extrusionGraphs()
 
+    def gc_g1xyef(self):
+        self.newdataframe = self.newdataframe.append(
+            {'Xc': float(self.tlist[1][1:]), 'Yc': float(self.tlist[2][1:]), 'Zc': self.gc_z,
+             'E': float(self.tlist[3][1:]),
+             'F': float(self.tlist[4][1:]), 'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh,
+             'Layer': self.cmt_layer},
+            ignore_index=True)
+
+    def gc_g1xye(self):
+        self.newdataframe = self.newdataframe.append(
+            {'Xc': float(self.tlist[1][1:]), 'Yc': float(self.tlist[2][1:]), 'Zc': self.gc_z,
+             'E': float(self.tlist[3][1:]),
+             'F': None, 'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh, 'Layer': self.cmt_layer},
+            ignore_index=True)
+
+    def gc_g1xyf(self):
+        self.newdataframe = self.newdataframe.append(
+            {'Xc': float(self.tlist[1][1:]), 'Yc': float(self.tlist[2][1:]), 'Zc': self.gc_z, 'E': None,
+             'F': float(self.tlist[3][1:]), 'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh,
+             'Layer': self.cmt_layer},
+            ignore_index=True)
+
+    def gc_g92e0(self):
+        if self.newdataframe.empty is False:
+            self.newdataframe = self.newdataframe.append(
+                {'Xc': self.newdataframe['Xc'].iloc[-1], 'Yc': self.newdataframe['Yc'].iloc[-1],
+                 'Zc': self.gc_z,
+                 'E': 0.0, 'F': None, 'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh,
+                 'Layer': self.cmt_layer}, ignore_index=True)
+        elif self.newdataframe.empty is True:
+            return
+
+    def gc_ftype(self):
+        self.ft_var = self.clist[3]
+
+    def gc_laycmt(self):
+        self.cmt_layer = float(self.tlist[2][:-1])
+
+    def gc_toolcmt(self):
+        self.tc_ew = float(self.tlist[3][1:])
+        self.tc_lh = float(self.tlist[2][1:-1])
+
+    def gc_g1z(self):
+        self.gc_z = float(self.tlist[1][1:])
+
+    def contd(self):
+        return
+
+    def gcodetodf(self):
+
+        # self.df_cols = {'featureType': str, 'toolew': 0.0, 'toollh': 0.0, 'gcodeZ': 0.0, 'layerCmt': int}
+
+        with open(self.inputfilepath, 'r') as ifile:
+
+            lflag = False
+            for i, item in enumerate(ifile):
+
+                layermatch = self.layerpattern.match(item)
+                self.tlist = item.split(' ')
+                self.clist = re.split(r"(\w+)", item)
+
+                if layermatch and (str(self.tlist[2][:-1]) == 'end' or int(self.tlist[2][:-1]) == (self.endlayer + 1)):
+                    break
+
+                if (layermatch and int(self.tlist[2][:-1]) == self.startlayer) or lflag is True:
+                    lflag = True
+                    # clist = re.split(r"(\w+)", item)
+
+                    map_gcpat = {bool(self.gonepattern.match(item)): self.gc_g1xyef,
+                                 bool(self.gepattern.match(item)): self.gc_g1xye,
+                                 bool(self.gtrpattern.match(item)): self.gc_g1xyf,
+                                 bool(self.resetextpattern.match(item)): self.gc_g92e0,
+                                 bool(self.ftpattern.match(item)): self.gc_ftype,
+                                 bool(self.toolcompattern.match(item)): self.gc_toolcmt,
+                                 bool(self.layerpattern.match(item)): self.gc_laycmt,
+                                 bool(self.zpattern.match(item)): self.gc_g1z}
+
+                    map_gcpat.get(True, self.contd)()
+
+        # print(self.newdataframe)
 
     def gcodeSummary(self):
 
@@ -76,107 +162,6 @@ class Application():
             if mat_extrusionmultiplier:
                 self.gc_summary_dt['extrusionMultiplier'] = float(item.split(',')[1])
                 break
-
-    def coordinateTable(self):
-
-        self.ft_var = str
-        self.tc_ew = 0.0
-        self.tc_lh = 0.0
-        self.gc_z = 0.0
-        self.cmt_layer = int
-
-        self. df_cols = {'featureType': str, 'toolew': 0.0, 'toollh': 0.0, 'gcodeZ': 0.0, 'layerCmt': int}
-
-        with open(self.inputfilepath, 'r') as ifile:
-
-            lflag = False
-            for i, item in enumerate(ifile):
-
-                rematches = {'G1XYEF': self.gonepattern.match(item),
-                             'G1XYE': self.gepattern.match(item),
-                             'G1XYF': self.gtrpattern.match(item),
-                             'G92E0': self.resetextpattern.match(item),
-                             'Feature': self.ftpattern.match(item),
-                             'ToolComment': self.toolcompattern.match(item),
-                             'LayerComment': self.layerpattern.match(item),
-                             'G1Z': self.zpattern.match(item)}
-
-                layermatch = self.layerpattern.match(item)
-                linestr = item.split(' ')
-                # glist = re.split(r"\s", item)
-
-                if layermatch and (str(linestr[2][:-1]) == 'end' or int(linestr[2][:-1]) == (self.endlayer+1)):
-                    break
-
-                if (layermatch and int(linestr[2][:-1]) == self.startlayer) or lflag is True:
-                    lflag = True
-                    self.populateGcode(item, rematches)
-
-
-        # print(self.newdataframe)
-
-    def populateGcode(self, item, rematches):
-
-        tlist = item.split(' ')
-        clist = re.split(r"(\w+)", item)
-        glist = re.split(r"\s", item)
-        # print([x for x in tlist])
-
-        # rematches.get(item, 'other')
-        # self.col_check = {self.df_cols['featureType']: clist[3],
-        #                   self.df_cols['layerCmt']: float(tlist[2][:-1]),
-        #                   self.df_cols['toolew']: float(tlist[3][1:]),
-        #                   self.df_cols['toollh']: float(tlist[2][1:-1]),
-        #                   self.df_cols['gcodeZ']: float(tlist[1][1:])}
-        #
-
-        if rematches['Feature']:
-            self.ft_var = clist[3]
-            return
-
-        if rematches['LayerComment']:
-            self.cmt_layer = float(tlist[2][:-1])
-            return
-
-        if rematches['ToolComment']:
-            # print('tc match')
-            self.tc_ew = float(tlist[3][1:])
-            self.tc_lh = float(tlist[2][1:-1])
-            return
-
-        if rematches['G1Z']:
-            self.gc_z = float(tlist[1][1:])
-            return
-
-        if rematches['G1XYEF']:
-            self.newdataframe = self.newdataframe.append(
-                {'Xc': float(tlist[1][1:]), 'Yc': float(tlist[2][1:]), 'Zc': self.gc_z, 'E': float(tlist[3][1:]),
-                 'F': float(tlist[4][1:]), 'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh, 'Layer': self.cmt_layer},
-                ignore_index=True)
-            return
-
-        if rematches['G1XYE']:
-            self.newdataframe = self.newdataframe.append(
-                {'Xc': float(tlist[1][1:]), 'Yc': float(tlist[2][1:]), 'Zc': self.gc_z, 'E': float(tlist[3][1:]),
-                 'F': None, 'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh, 'Layer': self.cmt_layer},
-                ignore_index=True)
-            return
-
-        if rematches['G1XYF']:
-            self.newdataframe = self.newdataframe.append(
-                {'Xc': float(tlist[1][1:]), 'Yc': float(tlist[2][1:]), 'Zc': self.gc_z, 'E': None,
-                 'F': float(tlist[3][1:]), 'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh, 'Layer': self.cmt_layer},
-                ignore_index=True)
-            return
-
-        if rematches['G92E0']:
-            if self.newdataframe.empty is False:
-                self.newdataframe = self.newdataframe.append(
-                    {'Xc': self.newdataframe['Xc'].iloc[-1], 'Yc': self.newdataframe['Yc'].iloc[-1], 'Zc': self.gc_z,
-                     'E': 0.0, 'F': None, 'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh,
-                     'Layer': self.cmt_layer}, ignore_index=True)
-            elif self.newdataframe.empty is True:
-                return
 
     def extrusionAmount(self):
 
@@ -314,11 +299,8 @@ class Application():
         plt.subplots_adjust(top=1.0, bottom=0)
         plt.show(block=True)
 
-        # # plt.bar(self.ext_total, self.ext_outline, label='Extrusion %')
-        # sns.barplot(data=[self.ext_infill, self.ext_outline])
-        # plt.xlabel('Features')
-        # plt.ylabel('Extrusion')
-        # plt.show(block=True)
+        sns.barplot(x=[x for x in self.map_ext.keys()], y=[float(x) for x in self.map_ext.values()])
+        plt.show(block=True)
 
 
 app = Application()
