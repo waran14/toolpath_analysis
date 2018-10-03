@@ -15,9 +15,10 @@ class Application():
 
     def __init__(self):
 
-        self.inputfilepath ='C:\\Users\\Dinesh\\Desktop\\Test gcodes\\benchy_simple.gcode'
+        self.inputfilepath ='C:\\Users\\Dinesh\\PycharmProjects\\learning\\midsizefile.gcode'
+        # self.inputfilepath = 'C:\\Users\\Dinesh\\Desktop\\Test gcodes\\benchy_simple.gcode'
         self.startlayer = 1
-        self.endlayer = 240
+        self.endlayer = 10
         self.emode = 'A'
 
         self.gepattern = re.compile(r"G1\sX\d+\.\d+\sY\d+\.\d+\sE\d+\.\d+")
@@ -32,6 +33,7 @@ class Application():
         self.zpattern = re.compile(r"G1\sZ\d+\.\d+")
 
         self.layerlist = []
+        self.tablelist = []
         self.newdataframe = DataFrame(columns=['Xc', 'Yc', 'Zc', 'E', 'F', 'FT', 'EW', 'LH', 'Layer'])
         self.layerheight = 0.2
         self.extwidth = 0.4*0.5
@@ -47,7 +49,6 @@ class Application():
 
         self.gcodetodf()
 
-        # self.coordinateTable()
         # self.gcodeSummary()
         # self.extrusionAmount()
         # self.retractionCount()
@@ -61,35 +62,27 @@ class Application():
         self.extrusionGraphs()
 
     def gc_g1xyef(self):
-        self.newdataframe = self.newdataframe.append(
-            {'Xc': float(self.tlist[1][1:]), 'Yc': float(self.tlist[2][1:]), 'Zc': self.gc_z,
-             'E': float(self.tlist[3][1:]),
-             'F': float(self.tlist[4][1:]), 'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh,
-             'Layer': self.cmt_layer},
-            ignore_index=True)
+        self.tablelist.append({'Xc': float(self.tlist[1][1:]), 'Yc': float(self.tlist[2][1:]), 'Zc': self.gc_z,
+             'E': float(self.tlist[3][1:]), 'F': float(self.tlist[4][1:]),
+             'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh, 'Layer': self.cmt_layer})
+
 
     def gc_g1xye(self):
-        self.newdataframe = self.newdataframe.append(
-            {'Xc': float(self.tlist[1][1:]), 'Yc': float(self.tlist[2][1:]), 'Zc': self.gc_z,
-             'E': float(self.tlist[3][1:]),
-             'F': None, 'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh, 'Layer': self.cmt_layer},
-            ignore_index=True)
+        self.tablelist.append({'Xc': float(self.tlist[1][1:]), 'Yc': float(self.tlist[2][1:]), 'Zc': self.gc_z,
+             'E': float(self.tlist[3][1:]), 'F': None, 'FT': self.ft_var, 'EW': self.tc_ew,
+             'LH': self.tc_lh, 'Layer': self.cmt_layer})
 
     def gc_g1xyf(self):
-        self.newdataframe = self.newdataframe.append(
-            {'Xc': float(self.tlist[1][1:]), 'Yc': float(self.tlist[2][1:]), 'Zc': self.gc_z, 'E': None,
-             'F': float(self.tlist[3][1:]), 'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh,
-             'Layer': self.cmt_layer},
-            ignore_index=True)
+        self.tablelist.append({'Xc': float(self.tlist[1][1:]), 'Yc': float(self.tlist[2][1:]),
+                               'Zc': self.gc_z, 'E': None, 'F': float(self.tlist[3][1:]),
+                               'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh, 'Layer': self.cmt_layer})
 
     def gc_g92e0(self):
-        if self.newdataframe.empty is False:
-            self.newdataframe = self.newdataframe.append(
-                {'Xc': self.newdataframe['Xc'].iloc[-1], 'Yc': self.newdataframe['Yc'].iloc[-1],
-                 'Zc': self.gc_z,
-                 'E': 0.0, 'F': None, 'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh,
-                 'Layer': self.cmt_layer}, ignore_index=True)
-        elif self.newdataframe.empty is True:
+        if self.tablelist:
+            self.tablelist.append({'Xc': self.tablelist[-1]['Xc'], 'Yc': self.tablelist[-1]['Yc'],
+                 'Zc': self.gc_z, 'E': 0.0, 'F': None, 'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh,
+                 'Layer': self.cmt_layer})
+        else:
             return
 
     def gc_ftype(self):
@@ -110,12 +103,10 @@ class Application():
 
     def gcodetodf(self):
 
-        # self.df_cols = {'featureType': str, 'toolew': 0.0, 'toollh': 0.0, 'gcodeZ': 0.0, 'layerCmt': int}
-
         with open(self.inputfilepath, 'r') as ifile:
 
             lflag = False
-            for i, item in enumerate(ifile):
+            for item in ifile:
 
                 layermatch = self.layerpattern.match(item)
                 self.tlist = item.split(' ')
@@ -138,6 +129,8 @@ class Application():
                                  bool(self.zpattern.match(item)): self.gc_g1z}
 
                     map_gcpat.get(True, self.contd)()
+
+        self.newdataframe = pd.DataFrame(self.tablelist)
 
         # print(self.newdataframe)
 
