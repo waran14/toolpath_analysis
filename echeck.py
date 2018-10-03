@@ -3,6 +3,7 @@ from pandas import DataFrame
 import re
 import math
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
 
 pd.set_option('display.max_rows', 5000)
@@ -15,10 +16,10 @@ class Application():
 
     def __init__(self):
 
-        self.inputfilepath ='C:\\Users\\Dinesh\\PycharmProjects\\learning\\midsizefile.gcode'
-        # self.inputfilepath = 'C:\\Users\\Dinesh\\Desktop\\Test gcodes\\benchy_simple.gcode'
+        # self.inputfilepath ='C:\\Users\\Dinesh\\PycharmProjects\\learning\\midsizefile.gcode'
+        self.inputfilepath = 'C:\\Users\\Dinesh\\Desktop\\Test gcodes\\benchy_simple.gcode'
         self.startlayer = 1
-        self.endlayer = 10
+        self.endlayer = 5
         self.emode = 'A'
 
         self.gepattern = re.compile(r"G1\sX\d+\.\d+\sY\d+\.\d+\sE\d+\.\d+")
@@ -32,7 +33,6 @@ class Application():
         self.resetextpattern = re.compile(r"G92\sE0")
         self.zpattern = re.compile(r"G1\sZ\d+\.\d+")
 
-        self.layerlist = []
         self.tablelist = []
         self.newdataframe = DataFrame(columns=['Xc', 'Yc', 'Zc', 'E', 'F', 'FT', 'EW', 'LH', 'Layer'])
         self.layerheight = 0.2
@@ -47,6 +47,7 @@ class Application():
         self.gc_z = 0.0
         self.cmt_layer = int
 
+        # parse the gcode into a dataframe
         self.gcodetodf()
 
         # self.gcodeSummary()
@@ -132,6 +133,9 @@ class Application():
 
         self.newdataframe = pd.DataFrame(self.tablelist)
 
+        # purge the list as it is no longer required
+        del self.tablelist[:]
+
         # print(self.newdataframe)
 
     def gcodeSummary(self):
@@ -155,64 +159,6 @@ class Application():
             if mat_extrusionmultiplier:
                 self.gc_summary_dt['extrusionMultiplier'] = float(item.split(',')[1])
                 break
-
-    def extrusionAmount(self):
-
-        tempevalue = (self.extmult * self.layerheight * self.extwidth) / (math.pi * math.pow((self.fildia / 2), 2))
-        evalue = 0.0 if pd.isnull(self.newdataframe.iloc[0]['E']) is True else self.newdataframe.iloc[0]['E']
-        totaldistance = 0.0
-        totalextrusion = 0.0
-
-
-        for i, row in self.newdataframe.iterrows():
-
-            if i < 1:
-                continue
-
-            if pd.isnull(self.newdataframe.iloc[i]['E']) is True:
-                evalue = 0.0
-                continue
-
-            x2 = row['Xc']
-            y2 = row['Yc']
-            x1 = self.newdataframe.iloc[i-1]['Xc']
-            y1 = self.newdataframe.iloc[i-1]['Yc']
-
-            edist = math.sqrt(math.pow((x2-x1), 2) + math.pow((y2-y1), 2))
-            totaldistance += edist
-
-            evalue = (evalue + (tempevalue * edist)) if self.emode == 'A' else (tempevalue * edist)
-
-
-            # for visual inspection
-            eformat = float(format(evalue, '.4f'))
-            # print(i, x2, y2, self.newdataframe.iloc[i]['E'], eformat, [True if self.newdataframe.iloc[i]['E'] == eformat else False])
-
-        print(self.newdataframe)
-        print(float(format(totaldistance, '.4f')))
-
-    def retractionCount(self):
-
-        # cannot handle weird cases where there is a combo of stationary and non stationary in a single retract move
-
-        retcount = 0
-        nonstretpattern = re.compile(r"G1\sX\d+\.\d+\sY\d+\.\d+\sE-{}\d+".format(self.gc_retractiondistance))
-        stretpattern = re.compile(r"G1\sE-{}\d+\sF\d+".format(self.gc_retractiondistance))
-        comboretpattern = re.compile(r"G1\sE-\d+\.\d+")
-
-        for item in self.layerlist:
-            nonstretmatch = nonstretpattern.match(item)
-            stretmatch = stretpattern.match(item)
-
-            if stretmatch or nonstretmatch:
-                retcount += 1
-                print(item)
-                continue
-
-        rdisttotal = float(format((retcount*self.gc_retractiondistance), '.4f'))
-
-        print(f'total no. of retractions: {retcount}')
-        print(f'Total distance retracted: {rdisttotal} mm')
 
     def distancetraveled(self):
 
@@ -256,12 +202,9 @@ class Application():
 
     def extByFeature(self):
 
-        self.map_ext = {'outer': 0.0,
-                 'inner': 0.0,
-                 'solid': 0.0,
-                 'infill': 0.0,
-                 'support': 0.0,
-                 'other': 0.0}
+        self.map_ext = {'outer': 0.0, 'inner': 0.0, 'solid': 0.0, 'infill': 0.0, 'gap': 0.0,
+                        'support': 0.0, 'skirt': 0.0, 'raft': 0.0, 'prime': 0.0, 'ooze': 0.0,
+                        'other': 0.0}
 
         self.ext_total = 0.0
         self.ftypes = [x for x in self.map_ext.keys() if x != 'other']
@@ -277,24 +220,74 @@ class Application():
 
         # print(self.newdataframe)
 
-        print(f'outline extrusion distance: ', float(format((self.map_ext['outer'] + self.map_ext['inner']), '.4f')))
-        print(f'infill extrusion distance: ', float(format(self.map_ext['infill'], '.4f')))
-        print(f'support extrusion distance: ', float(format(self.map_ext['support'], '.4f')))
-        print(f'solid layer extrusion distance: ', float(format(self.map_ext['solid'], '.4f')))
-        print(f'other extrusion distance: ', float(format(self.map_ext['other'], '.4f')))
-        print(f'total extrusion distance: ', float(format(self.ext_total, '.4f')))
+        print(f'outline extrusion amount: ', float(format((self.map_ext['outer'] + self.map_ext['inner']), '.4f')), 'mm')
+        print(f'infill extrusion amount: ', float(format(self.map_ext['infill'], '.4f')), 'mm')
+        print(f'support extrusion amount: ', float(format(self.map_ext['support'], '.4f')), 'mm')
+        print(f'solid layer extrusion amount: ', float(format(self.map_ext['solid'], '.4f')), 'mm')
+        print(f'other extrusion amount: ', float(format(self.map_ext['other'], '.4f')), 'mm')
+        print(f'total extrusion amount: ', float(format(self.ext_total, '.4f')), 'mm')
 
     def extrusionGraphs(self):
 
-        pieslices = [float(x) for x in self.map_ext.values() if x > 0.0]
-        pielabels = [x for x in self.map_ext.keys() if self.map_ext[x] > 0.0]
-        plt.style.use('ggplot')
-        plt.pie(pieslices, labels=pielabels, startangle=90, autopct='%1.1f%%')
-        plt.subplots_adjust(top=1.0, bottom=0)
+        total_outlines = self.map_ext['outer'] + self.map_ext['inner']
+        total_infill = self.map_ext['infill'] + self.map_ext['gap']
+        total_additions = self.map_ext['prime'] + self.map_ext['ooze'] + self.map_ext['skirt'] + \
+                          self.map_ext['support'] + self.map_ext['raft']
+
+        self.materialusage = {'Outlines': total_outlines, 'Solid Layers': self.map_ext['solid'],
+                              'Infill': total_infill, 'Support Structures': self.map_ext['support'],
+                              'Skirt/Brim': self.map_ext['skirt'], 'Raft': self.map_ext['raft'],
+                              'Prime Pillar': self.map_ext['prime'], 'Ooze Shield': self.map_ext['ooze'],
+                              'other': self.map_ext['other']}
+
+        # show the percentage use and label as legends
+        # pieslices = [float(x) for x in self.materialusage.values() if x > 0.0]
+        # piekeys = [x for x in self.materialusage.keys() if self.materialusage[x] > 0.0]
+        # pieshares= [(a*100)/self.ext_total for x, a in self.materialusage.items() if a > 0.0]
+        # pielabels = ['{0:1.1f}% {1}'.format(x, y) for x, y in zip(pieshares, piekeys)]
+        # plt.style.use('ggplot')
+        #
+        # title = plt.title('Material used per feature')
+        # title.set_ha("left")
+        # plt.gca().axis("equal")
+        #
+        # pieces = plt.pie(pieslices, startangle=90)
+        # plt.legend(pieces[0], pielabels, bbox_to_anchor=(0.8, 0.5), loc="center right", fontsize=10,
+        #            bbox_transform=plt.gcf().transFigure)
+        # plt.subplots_adjust(left=0.0, bottom=0.1, right=0.45)
+        # plt.show(block=True)
+
+        fig, ax = plt.subplots(figsize=(7, 5), subplot_kw=dict(aspect="equal"))
+
+        pieslices = [float(x) for x in self.materialusage.values() if x > 0.0]
+        pielabels = [x for x in self.materialusage.keys() if self.materialusage[x] > 0.0]
+        plt.style.use('seaborn-deep')
+
+        wedges, texts = ax.pie(pieslices, wedgeprops=dict(width=0.5), startangle=45)
+
+        bbox_props = dict(boxstyle="square,pad=0.5", fc="w", ec="grey", lw=0.7)
+        kw = dict(xycoords='data', textcoords='data', arrowprops=dict(arrowstyle="-"),
+                  bbox=bbox_props, zorder=0, va="center")
+
+        for i, p in enumerate(wedges):
+            ang = (p.theta2 - p.theta1) / 2. + p.theta1
+            y = np.sin(np.deg2rad(ang))
+            x = np.cos(np.deg2rad(ang))
+            horizontalalignment = {-1: "right", 1: "left"}[int(np.sign(x))]
+            connectionstyle = "angle,angleA=0,angleB={}".format(ang)
+            kw["arrowprops"].update({"connectionstyle": connectionstyle})
+            ax.annotate(pielabels[i], xy=(x, y), xytext=(1.35 * np.sign(x), 1.4 * y),
+                        horizontalalignment=horizontalalignment, **kw)
+
+        ax.set_title("Material usage per feature", pad=-1.0)
+        ax.title.set_position([.5, 1.1])
+
+        plt.subplots_adjust(top=0.85, bottom=0.1)
         plt.show(block=True)
 
-        sns.barplot(x=[x for x in self.map_ext.keys()], y=[float(x) for x in self.map_ext.values()])
-        plt.show(block=True)
+        # sns.barplot(x=[x for x in self.map_ext.keys() if self.map_ext[x] > 0.0],
+        #             y=[float(x) for x in self.map_ext.values() if x > 0.0])
+        # plt.show(block=True)
 
 
 app = Application()
