@@ -233,6 +233,7 @@ class Application():
                               + math.pow((row['Yc']-self.newdataframe.iloc[i-1]['Yc']), 2))
             self.dist_total += edist
 
+            # categorize into travel and extrusion based on the current and previous E values
             if self.distance_tup in ((False, False), (False, True)):
                 self.dist['extrusion'] += edist
             elif self.distance_tup in ((True, True), (True, False)):
