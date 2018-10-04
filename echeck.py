@@ -19,7 +19,7 @@ class Application():
         # self.inputfilepath ='C:\\Users\\Dinesh\\PycharmProjects\\learning\\midsizefile.gcode'
         self.inputfilepath = 'C:\\Users\\Dinesh\\Desktop\\Test gcodes\\benchy_simple.gcode'
         self.startlayer = 1
-        self.endlayer = 5
+        self.endlayer = 5000
         self.emode = 'A'
 
         self.gepattern = re.compile(r"G1\sX\d+\.\d+\sY\d+\.\d+\sE\d+\.\d+")
@@ -218,8 +218,6 @@ class Application():
             self.ext_total += edist
             self.map_ext[self.newdataframe.iloc[i]['FT'] if self.newdataframe.iloc[i]['FT'] in self.ftypes else 'other'] += edist
 
-        # print(self.newdataframe)
-
         print(f'outline extrusion amount: ', float(format((self.map_ext['outer'] + self.map_ext['inner']), '.4f')), 'mm')
         print(f'infill extrusion amount: ', float(format(self.map_ext['infill'], '.4f')), 'mm')
         print(f'support extrusion amount: ', float(format(self.map_ext['support'], '.4f')), 'mm')
@@ -240,32 +238,18 @@ class Application():
                               'Prime Pillar': self.map_ext['prime'], 'Ooze Shield': self.map_ext['ooze'],
                               'other': self.map_ext['other']}
 
-        # show the percentage use and label as legends
-        # pieslices = [float(x) for x in self.materialusage.values() if x > 0.0]
-        # piekeys = [x for x in self.materialusage.keys() if self.materialusage[x] > 0.0]
-        # pieshares= [(a*100)/self.ext_total for x, a in self.materialusage.items() if a > 0.0]
-        # pielabels = ['{0:1.1f}% {1}'.format(x, y) for x, y in zip(pieshares, piekeys)]
-        # plt.style.use('ggplot')
-        #
-        # title = plt.title('Material used per feature')
-        # title.set_ha("left")
-        # plt.gca().axis("equal")
-        #
-        # pieces = plt.pie(pieslices, startangle=90)
-        # plt.legend(pieces[0], pielabels, bbox_to_anchor=(0.8, 0.5), loc="center right", fontsize=10,
-        #            bbox_transform=plt.gcf().transFigure)
-        # plt.subplots_adjust(left=0.0, bottom=0.1, right=0.45)
-        # plt.show(block=True)
-
         fig, ax = plt.subplots(figsize=(7, 5), subplot_kw=dict(aspect="equal"))
 
         pieslices = [float(x) for x in self.materialusage.values() if x > 0.0]
-        pielabels = [x for x in self.materialusage.keys() if self.materialusage[x] > 0.0]
+        piekeys = [x for x in self.materialusage.keys() if self.materialusage[x] > 0.0]
+        pieshares= [(a*100)/self.ext_total for x, a in self.materialusage.items() if a > 0.0]
+        pielabels = ['{0:1.1f}% {1}'.format(x, y) for x, y in zip(pieshares, piekeys)]
+
         plt.style.use('seaborn-deep')
 
         wedges, texts = ax.pie(pieslices, wedgeprops=dict(width=0.5), startangle=45)
 
-        bbox_props = dict(boxstyle="square,pad=0.5", fc="w", ec="grey", lw=0.7)
+        bbox_props = dict(boxstyle="square,pad=0.5", fc="w", ec="grey", lw=0.5)
         kw = dict(xycoords='data', textcoords='data', arrowprops=dict(arrowstyle="-"),
                   bbox=bbox_props, zorder=0, va="center")
 
@@ -284,10 +268,6 @@ class Application():
 
         plt.subplots_adjust(top=0.85, bottom=0.1)
         plt.show(block=True)
-
-        # sns.barplot(x=[x for x in self.map_ext.keys() if self.map_ext[x] > 0.0],
-        #             y=[float(x) for x in self.map_ext.values() if x > 0.0])
-        # plt.show(block=True)
 
 
 app = Application()
