@@ -27,6 +27,8 @@ All these libraries can be installed using `pip` from the Terminal window (on Ma
 
 ## Configuration
 
+Open `da_gcode.py` file in your favorite python IDE and following the steps below
+
 #### 1. Select the input file
 User needs to provide an input gcode file (generated from Simplify3D). Only Plaintext gcode files are compatible as of now. Copy the filepath from your desktop and enter the path in variable `self.inputfilepath`. Sample filepath available here
 
@@ -35,7 +37,7 @@ User needs to provide an input gcode file (generated from Simplify3D). Only Plai
 #### 2. Select the Layer Range
 Starting layer is set using the variable `self.startlayer` and ending layer using `self.endlayer`. Key in the numbers accordingly to a specific section of the model. Alternatively, set starting layer to 1 and ending layer to a very large number- 999999999 to analyze a entire gcode file (this might take a few minutes to complete)
 
-        self.startlayer = 1        # must be greater than 1
+        self.startlayer = 1        # must be greater than 0
         self.endlayer = 50         # enter a large number like 999999 if you want to go until the end
 
 #### 3. Choose the module to run
