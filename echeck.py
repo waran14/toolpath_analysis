@@ -1,3 +1,10 @@
+# Program to perform Data Analysis on Gcode files
+# Compatible with Simplify3D gcodes 4.X
+# Sample test files: midsizefile, benchy in the attachments
+# Module 1: Distance traveled by the toolhead during Extrusion and Travel
+# Module 2: Material usage per feature (infill, outlines etc) and Overall Material used
+# Data can be obtained for the specified layer range (1 to N)
+
 import pandas as pd
 from pandas import DataFrame
 import re
@@ -5,41 +12,39 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+from pathlib import Path
 
+# to display the dataframe in one page while testing
 pd.set_option('display.max_rows', 5000)
 pd.set_option('display.max_columns', 50)
 pd.set_option('display.width', 1500)
-
 
 class Application():
 
 
     def __init__(self):
 
-        # self.inputfilepath ='C:\\Users\\Dinesh\\PycharmProjects\\learning\\midsizefile.gcode'
-        self.inputfilepath = 'C:\\Users\\Dinesh\\Desktop\\Test gcodes\\benchy_simple.gcode'
-        self.startlayer = 1
-        self.endlayer = 5000
-        self.emode = 'A'
+        self.inputfilepath = Path("C:/Users/Dinesh/PycharmProjects/learning/midsizefile.gcode")
+        # alternate gcode files for testing: benchy_simple.gcode
 
+        self.startlayer = 1        # must be greater than 1
+        self.endlayer = 50         # enter a large number like 999999 if you want to go until the end
+
+        # regex codes to extract different types of Gcode lines
         self.gepattern = re.compile(r"G1\sX\d+\.\d+\sY\d+\.\d+\sE\d+\.\d+")
         self.gonepattern = re.compile(r"G1\sX\d+\.\d+\sY\d+\.\d+\sE\d+\.\d+\sF\d+")
         self.gtrpattern = re.compile(r"G1\sX\d+\.\d+\sY\d+\.\d+\sF\d+")
-
         self.ftpattern = re.compile(r";\sfeature\s\w+")
         self.layerpattern = re.compile(r";\slayer\s")
         self.toolcompattern = re.compile(r";\stool\s")
-
         self.resetextpattern = re.compile(r"G92\sE0")
         self.zpattern = re.compile(r"G1\sZ\d+\.\d+")
 
+        # Dataframe to store the gcode lines
         self.tablelist = []
         self.newdataframe = DataFrame(columns=['Xc', 'Yc', 'Zc', 'E', 'F', 'FT', 'EW', 'LH', 'Layer'])
-        self.layerheight = 0.2
-        self.extwidth = 0.4*0.5
-        self.fildia = 1.75
-        self.extmult = 0.92
 
+        # initializing column variables
         self.gc_summary_dt = {}
         self.ft_var = str
         self.tc_ew = 0.0
@@ -47,26 +52,23 @@ class Application():
         self.gc_z = 0.0
         self.cmt_layer = int
 
+        # ------------- Program execution begins --------------- #
+
         # parse the gcode into a dataframe
         self.gcodetodf()
 
-        # self.gcodeSummary()
-        # self.extrusionAmount()
-        # self.retractionCount()
+        # Module 1: uncomment to calculate the distance traveled
+        self.distancetraveled()
+        self.distanceGraphs()
 
-        # uncomment to calculate the distance traveled
-        # self.distancetraveled()
-        # self.distanceGraphs()
-
-        # uncomment to calculate the extrusion amounts for each feature
-        self.extByFeature()
-        self.extrusionGraphs()
+        # Module 2: uncomment to calculate the extrusion amounts for each feature
+        # self.extByFeature()
+        # self.extrusionGraphs()
 
     def gc_g1xyef(self):
         self.tablelist.append({'Xc': float(self.tlist[1][1:]), 'Yc': float(self.tlist[2][1:]), 'Zc': self.gc_z,
              'E': float(self.tlist[3][1:]), 'F': float(self.tlist[4][1:]),
              'FT': self.ft_var, 'EW': self.tc_ew, 'LH': self.tc_lh, 'Layer': self.cmt_layer})
-
 
     def gc_g1xye(self):
         self.tablelist.append({'Xc': float(self.tlist[1][1:]), 'Yc': float(self.tlist[2][1:]), 'Zc': self.gc_z,
@@ -136,29 +138,8 @@ class Application():
         # purge the list as it is no longer required
         del self.tablelist[:]
 
+        # for testing purposes
         # print(self.newdataframe)
-
-    def gcodeSummary(self):
-
-        with open(self.inputfilepath, 'r') as ifile:
-            head = [next(ifile) for x in range(0, 200)]
-            # tail = [line for line in ifile.readlines()[-10:]]
-
-        gcsumpattern = re.compile(r";\s\s\s\w+")
-        patt_retractiondistance = re.compile(r";\s\s\sextruderRetractionDistance,")
-        patt_extrusionmultiplier = re.compile(r";\s\s\sextrusionMultiplier,")
-
-        for item in head:
-            mat_retractiondistance = patt_retractiondistance.match(item)
-            mat_extrusionmultiplier = patt_extrusionmultiplier.match(item)
-
-            if mat_retractiondistance:
-                self.gc_summary_dt['retractionDistance'] = float(item.split(',')[1])
-                break
-
-            if mat_extrusionmultiplier:
-                self.gc_summary_dt['extrusionMultiplier'] = float(item.split(',')[1])
-                break
 
     def distancetraveled(self):
 
@@ -185,19 +166,16 @@ class Application():
             elif self.distance_tup in ((True, True), (True, False)):
                 self.dist['travel'] += edist
 
-        print(f'total extrusion distance: ', float(format(self.dist['extrusion'], '.4f')))
-        print(f'total extrusion distance: ', float(format(self.dist['travel'], '.4f')))
-        print(f'total distance: ', float(format(self.dist_total, '.4f')))
+        print(f'Total extrusion distance: ', float(format(self.dist['extrusion'], '.4f')), 'mm')
+        print(f'Total travel distance: ', float(format(self.dist['travel'], '.4f')), 'mm')
+        print(f'Total distance traveled by the Toolhead: ', float(format(self.dist_total, '.4f')), 'mm')
 
     def distanceGraphs(self):
 
-        pieslices = [self.dist['travel'], self.dist['extrusion']]
-        pielabels = ['Travel', 'Extrusion']
-        plt.pie(pieslices, labels=pielabels, startangle=90, autopct='%1.1f%%')
-        plt.subplots_adjust(top=1.0, bottom=0)
-        # plt.bar(self.ext_total, self.totalext, label='Extrusion %')
-        # plt.xlabel('X')
-        # plt.ylabel('Y')
+        ax = sns.barplot(x=['Travel', 'Extrusion'], y=[self.dist['travel'], self.dist['extrusion']],
+                         palette=None)
+        ax.set(xlabel='Movement Type', ylabel='Distance Traveled (mm)')
+        plt.subplots_adjust(left=0.15, bottom=0.15)
         plt.show(block=True)
 
     def extByFeature(self):
