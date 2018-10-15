@@ -40,12 +40,14 @@ Starting layer is set using the variable `self.startlayer` and ending layer usin
 #### 3. Choose the module to run
 
 Module 1: Calculate the distance traveled by the toolhead
+This module will compute the distance traveled by the nozzle during printing moves and travel moves. A simple bar chart is used to represent this data visually. Uncomment `self.distancetraveled()` and `self.distanceGraphs()` to run this section of the program
 
         # Module 1: uncomment to calculate the distance traveled
-        self.distancetraveled()
-        self.distanceGraphs()
+        # self.distancetraveled()
+        # self.distanceGraphs()
         
 Module 2: Calculate the filament usage, categorized by feature
+This module calcualtes the filament consumed by each feature eg. amount of filament consumed by the Outlines and plots a nice pie chart to compare the individual contributions 
 
         # Module 2: uncomment to calculate the extrusion amounts for each feature
         self.extByFeature()
@@ -53,7 +55,7 @@ Module 2: Calculate the filament usage, categorized by feature
 
 ## Results
 
-Distance Traveled
+Sample summary and charts for Distance Traveled by the nozzle 
 
     Total extrusion distance:  33419.2097 mm
     Total travel distance:  1543.1156 mm
@@ -61,7 +63,7 @@ Distance Traveled
 
 ![Screenshot](https://i.imgur.com/IPPJmSJ.png)
 
-Extrusion amount Summary (length in raw filament)
+Sample summary and charts for the amount of filament consumed (length in raw filament)
 
     Outlines:  392.646 mm
     Infill:  411.4081 mm
@@ -73,12 +75,10 @@ Extrusion amount Summary (length in raw filament)
 ![Screenshot](https://i.imgur.com/7FmlIRp.png)
 
 
-
-
-
+## References
 
 To learn more about gcode files and commands
-[Marlin Gcode commands](http://marlinfw.org/meta/gcode/) 
-[RepRap Wiki](https://reprap.org/wiki/G-code)
-[Simplify3D Gcode 101](https://www.simplify3d.com/support/articles/3d-printing-gcode-tutorial/)
+- [Marlin Gcode commands](http://marlinfw.org/meta/gcode/) 
+- [RepRap Wiki](https://reprap.org/wiki/G-code)
+- [Simplify3D Gcode 101](https://www.simplify3d.com/support/articles/3d-printing-gcode-tutorial/)
 
