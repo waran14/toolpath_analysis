@@ -1,17 +1,15 @@
 # Toolpath Analysis
 
-A basic program to perform Data analysis on gcode files. The program `da_gcode` contains the code to translate the gcode data into dataframe. The Dataframe is then used to select specific features and visualize the data in a useful form. Currently the program can handle small gcode files of upto 100,000 lines well. Larger gcode files might have performance issues.
+A very basic tool to study the material usage in 3D printed parts. Material consumption can be broken down based on the type of 3D printing feature (rafts, outlines, infill etc). This will allow the user to make smart decisions while configuring the print settings. The data is visualized using charts and text summary. Currently the program can handle small gcode files of upto 100,000 lines well. Larger gcode files might have performance issues.
 
 Compatibility: The program is currently compatible with Simplify3D gcodes of version 4.X and higher
 
-This tool will allow us to understand the various components of the 3D Printed part using visual tools
 
 ## Installation and Dependencies
 
 This program is written in Python. Hence using a Python IDE will make things easier in terms of executing the program. Some popular IDEs include Pycharm, Conda etc
 
-The program is written in Python. It is compatible with the 3.5 and higher
-The Python libraries required to get this program going are 
+The program is written in Python. It is compatible with the 3.5 and higher. Although 2.7 should also work just fine. The following Python libraries will be required to get this program running 
 
     Pandas
     Numpy
@@ -23,22 +21,20 @@ The Python libraries required to get this program going are
 
 All these libraries can be installed using `pip` from the Terminal window (on Mac) or the cmd prompt (Windows)
 
-        pip install 
-
 ## Configuration
 
-Open `da_gcode.py` file in your favorite python IDE and following the steps below
+Open `da_gcode.py` file in your favorite python IDE and follow the steps below
 
 #### 1. Select the input file
-User needs to provide an input gcode file (generated from Simplify3D). Only Plaintext gcode files are compatible as of now. Copy the filepath from your desktop and enter the path in variable `self.inputfilepath`. Sample filepath available here
+User needs to provide an input gcode file (generated from Simplify3D). Only Plaintext gcode files are compatible as of now. But this includes a major chunk of desktop printers in the market. Copy the gcode filepath from your desktop and enter it in the following section. 
 
         self.inputfilepath = Path("C:/Users/Username/PycharmProjects/learning/midsizefile.gcode")
         
 #### 2. Select the Layer Range
-Starting layer is set using the variable `self.startlayer` and ending layer using `self.endlayer`. Key in the numbers accordingly to a specific section of the model. Alternatively, set starting layer to 1 and ending layer to a very large number- 999999999 to analyze a entire gcode file (this might take a few minutes to complete)
+A start and end layer is required to compute the print properties within that range. `self.startlayer` can take any values greater than 0 and and `self.endlayer` can take any value equal to or greater than the Start layer value. If you would like to compute the stats for the entire print, set starting layer to 1 and ending layer to a very large number- 999999999 (this might take a few minutes to complete)
 
         self.startlayer = 1        # must be greater than 0
-        self.endlayer = 50         # enter a large number like 999999 if you want to go until the end
+        self.endlayer = 500         # enter a large number like 999999 if you want to go until the end
 
 #### 3. Choose the module to run
 
