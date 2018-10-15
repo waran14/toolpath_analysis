@@ -1,9 +1,10 @@
 # Toolpath Analysis
 
-A basic program to perform Data analysis on gcode files. Currently it can handle small gcode files of upto 100,000 lines well. Larger gcode files might have performance issues.
-It is currently compatible with Simplify3D gcodes of version 4.X
+A basic program to perform Data analysis on gcode files. The program `da_gcode` contains the code to translate the gcode data into dataframe. The Dataframe is then used to select specific features and visualize the data in a useful form. Currently the program can handle small gcode files of upto 100,000 lines well. Larger gcode files might have performance issues.
 
-The purpose of this program is to visualize the gcode data in the form of charts and graphs. This tool will allow us to understand the components of the 3D Printed part using vidual tools
+Compatibility: The program is currently compatible with Simplify3D gcodes of version 4.X and higher
+
+This tool will allow us to understand the various components of the 3D Printed part using visual tools
 
 ## Installation and Dependencies
 
