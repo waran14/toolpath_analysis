@@ -3,9 +3,37 @@
 A basic program to perform Data analysis on gcode files. Currently it can handle small gcode files of upto 100,000 lines well. Larger gcode files might have performance issues.
 It is currently compatible with Simplify3D gcodes of version 4.X
 
-The purpose of this program is to visualize the gcode data in the form of charts and graphs to give a better idea of printer's mileage
+The purpose of this program is to visualize the gcode data in the form of charts and graphs. This tool will allow us to understand the components of the 3D Printed part using vidual tools
+
+## Installation and Dependencies
+
+This program is pretty much a script at this point. It is written in Python.
+
+
+## Dependencies
+
+The program is written in Python. It is compatible with the 3.5 and higher
+The Python libraries required to get this program going are 
+
+Pandas
+Numpy
+re
+math
+Matplotlib
+Seaborn
+Pathlib
+
+All these libraries can be installed using `pip`
+    pip install 
+
+## Usage
+
+
 
 ![Screenshot](https://i.imgur.com/7FmlIRp.png)
+
+
+![Screenshot](https://i.imgur.com/IPPJmSJ.png)
 
 You are currently looking at the source code repository of OctoPrint. If you already installed it
 (e.g. by using the Raspberry Pi targeted distribution [OctoPi](https://github.com/guysoft/OctoPi)) and only
